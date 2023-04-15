@@ -370,7 +370,7 @@ const commandProc = () => {
     var obj = queue.shift();
 
     //실제 시리얼포트에 전송
-    port.write(obj.commandHex, (err) => {if(err)  return log('[Serial] Send Error: ', err.message); });
+    sock.write(obj.commandHex, (err) => {if(err)  return log('[Socket] Send Error: ', err.message); });
     /*
     lastReceive = new Date().getTime();
     obj.sentTime = lastReceive;     // 명령 전송시간 sentTime으로 저장
