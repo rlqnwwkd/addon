@@ -185,10 +185,10 @@ const commandProc = () => {
 
   // 큐에 쌓인 메시지 처리
   var obj = queue.shift();
-  port.write(obj.commandHex, (err) => {if(err)  return log('SerialPort Send Error: ', err.message); });
+  sock.write(obj.commandHex, (err) => {if(err)  return log('SocketEw11 Send Error: ', err.message); });
   lastReceive = new Date().getTime();
 
-  log('SerialPort Send:', obj.name, '->', obj.state, '('+delay+'ms)');
+  log('SocketEw11 Send:', obj.name, '->', obj.state, '('+delay+'ms)');
 }
 
 
