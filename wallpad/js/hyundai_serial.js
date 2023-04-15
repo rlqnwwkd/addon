@@ -167,7 +167,6 @@ const CONST = {
     // elevator 
     { base_topic: 'switch/homenet/elevator', statePrefixHex: 'f7 0b 01 34 04 41 10 00 06 9a'.toBuffer(), checkState: checkStateSingleValue, stateIndex: 9, stateCode: 0x9a, stateName: 'power', state:  'ON' },
     { base_topic: 'switch/homenet/elevator', statePrefixHex: 'f7 0b 01 34 04 41 10 00 00 9c'.toBuffer(), checkState: checkStateSingleValue, stateIndex: 9, stateCode: 0x9c, stateName: 'power', state:  'OFF' },    
-    { base_topic: 'sensor/homenet/elevator-state', statePrefixHex: 'f7 0d 01 34 01 41 10 00 a6 01'.toBuffer(), checkState: checkStateSingleValue, stateIndex: 9, stateCode: '', stateName: 'power', state:  '' },
 
     { base_topic: 'switch/homenet/breaker1', statePrefixHex: 'f7 0d 01 1b 04 43 10'.toBuffer(), checkState: checkStateSingleValue, stateIndex: 8, stateCode: 0x04, stateName: 'gas', state:  'OFF' },
     { base_topic: 'switch/homenet/breaker1', statePrefixHex: 'f7 0d 01 1b 04 43 10'.toBuffer(), checkState: checkStateSingleValue, stateIndex: 8, stateCode: 0x03, stateName: 'gas', state: 'ON' },
@@ -247,7 +246,7 @@ const CONST = {
 
   DEVICE_COMMAND: [
     { base_topic: 'switch/homenet/elevator', commandHex: 'f7 0b 01 34 02 41 10 06 00 9c ee'.toBuffer(), ackHex: 'f7 0b 01 34 04 41 10 06 06 9c'.toBuffer(), stateName: 'power', state:  'ON' },
-    //{ base_topic: 'switch/homenet/elevator', commandHex: 'f7 0b 01 34 04 41 10 00 00 9c ee'.toBuffer(), ackHex: 'f7 0b 01 34 04 41 10 00 00 9c'.toBuffer(), stateName: 'power', state:  'OFF' },
+    { base_topic: 'switch/homenet/elevator', commandHex: 'f7 0b 01 34 04 41 10 00 00 9c ee'.toBuffer(), ackHex: 'f7 0b 01 34 04 41 10 00 00 9c'.toBuffer(), stateName: 'power', state:  'OFF' },
     
     { base_topic: 'light/homenet/panel1-1', commandHex: 'f7 0b 01 19 02 40 11 02 00 b5 ee'.toBuffer(), ackHex: 'f7 0b 01 19 04 40 11 02 02 b1'.toBuffer(), stateName: 'power', state: 'OFF' },
     { base_topic: 'light/homenet/panel1-1', commandHex: 'f7 0b 01 19 02 40 11 01 00 b6 ee'.toBuffer(), ackHex: 'f7 0b 01 19 04 40 11 01 01 b1'.toBuffer(), stateName: 'power', state:  'ON' },
@@ -514,7 +513,7 @@ const CONST = {
   STATE_TOPIC: 'homeassistant/%s/%s/state', //상태 전달
   COMMAND_TOPIC: 'homeassistant/+/homenet/+/+/command', //명령 수신
 
-  COMMAND_MAX_RETRY_COUNT: 3
+  COMMAND_MAX_RETRY_COUNT: 5
 };
 
 //const EE = Uint8Array.of(0xee);
@@ -618,10 +617,6 @@ parser.on('data', buffer => {
     var stateFound = CONST.DEVICE_STATE.filter(obj => obj.checkState(obj, buffer) );
     if (stateFound.length !== 0) {
       stateFound.forEach(function (obj) {
-        if (obj.base_topic === 'sensor/homenet/elevator-state') {
-          obj.stateCode = buffer[obj.stateIndex];
-          obj.state = obj.stateCode & 0xff;
-        }
         //log('[Serial] State Found:', obj.base_topic, obj.stateName, obj.state);
         updateStatus(obj);
       });
