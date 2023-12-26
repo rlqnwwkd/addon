@@ -489,67 +489,77 @@ const parser = sock.pipe(new Delimiter({ delimiter: new Buffer([0xee]) }));
 
 //////////////////////////////////////////////////////////////////////////////////////
 
-
 // SerialPort에서 데이터 수신
 parser.on('data', buffer => {
-  //log('[Serial] Packet:', buffer.toString('hex'), '(Receive interval:', (new Date().getTime())-lastActivity, 'ms)' );
-  lastActivity = new Date().getTime();
-
-  if (buffer[0] != 0xf7) {
-    log('[Serial] Packet Error(Header):', buffer.toString('hex', 0, 1), buffer.toString('hex', 1));
-    return;
-  } else if (buffer.length+1 != buffer[1]) {
-    log('[Serial] Packet Error(Length):', buffer.toString('hex', 0, 2), buffer.toString('hex', 2));
-    return;
-  } else if (getCheckSum(buffer.subarray(0, buffer.length-1)) != buffer[buffer.length-1]) {
-    log('[Serial] Packet Error(Checksum):', buffer.toString('hex', 0, buffer.length-1), buffer.toString('hex', buffer.length-1));
-    return;
-  }
+  //console.log('Receive interval: ', (new Date().getTime())-lastReceive, 'ms ->', buffer);
+  lastReceive = new Date().getTime();
   
-  if (buffer[4] == 0x01) {
-    var scheduledRequestFound = CONST.DEVICE_SCHEDULED_REQUEST.find(obj => buffer.length === obj.requestHex.length && obj.requestHex.compare(buffer) === 0 );
-    if (scheduledRequestFound) {
-      //log('[Serial] Scheduled Request Found:', scheduledRequestFound.category);
-      scheduledRequestFound.lastActivity = lastActivity;
-    } else {
-      var unscheduledRequestFound = CONST.DEVICE_UNSCHEDULED_REQUEST.find(obj => buffer.length === obj.requestHex.length && obj.requestHex.compare(buffer) === 0 );
-      if (unscheduledRequestFound) {
-        log('[Serial] Unscheduled Request Found:', unscheduledRequestFound.category);
-      } else {
-        log('[Serial] Unknown Request:', humanizeBuffer(buffer));
-      }
-    }
-  } else if (buffer[4] ==  0x02) {
-    var cmdFound = CONST.DEVICE_COMMAND.find(obj => buffer.length+1 === obj.commandHex.length && obj.commandHex.includes(buffer) );
-    if (cmdFound) {
-      //log('[Serial] Command Found:', CONST.DEVICE_CONFIG[cmdFound.base_topic].name, '->', cmdFound.state, buffer.toString('hex', 0, 7), buffer.toString('hex', 7));
-      updateStatus(cmdFound);
-    } else {
-      log('[Serial] Unknown Command:', humanizeBuffer(buffer));
-    }
-  } else if (buffer[4] ==  0x04) {
-    var stateFound = CONST.DEVICE_STATE.filter(obj => obj.checkState(obj, buffer) );
-    if (stateFound.length !== 0) {
-      stateFound.forEach(function(obj) {
-        //log('[Serial] State Found:', obj.base_topic, obj.stateName, obj.state);
-        updateStatus(obj);
-      });
-    } else {
-      var ackFound = CONST.DEVICE_COMMAND.find(obj => buffer.length === obj.ackHex.length && obj.ackHex.compare(buffer) === 0 );
-      if (ackFound) {
-        var queueFoundIdx = queue.findIndex(obj => obj.commandHex && ackFound.commandHex.length === obj.commandHex.length && obj.commandHex.compare(ackFound.commandHex) === 0 );
-        if(queueFoundIdx > -1) {
-          log('[Serial] Success Command:', CONST.DEVICE_CONFIG[ackFound.base_topic].name, '->', ackFound.state, buffer.toString('hex', 0, 7), buffer.toString('hex', 7));
-          queue.splice(queueFoundIdx, 1);
-        }
-      } else {
-        log('[Serial] Unknown Response:', humanizeBuffer(buffer));
-      }
-    }
-  } else {
-    log('[Serial] Unknown Frame:', humanizeBuffer(buffer));
+  if(CONST.STATE_PREFIX.includes(buffer.toString('hex',0,4))) {
+    var objFound = CONST.DEVICE.find(obj => buffer.equals(obj.stateHex));
+    if(objFound) updateStatus(objFound);
   }
 });
+
+// // SerialPort에서 데이터 수신
+// parser.on('data', buffer => {
+//   //log('[Serial] Packet:', buffer.toString('hex'), '(Receive interval:', (new Date().getTime())-lastActivity, 'ms)' );
+//   lastActivity = new Date().getTime();
+
+//   if (buffer[0] != 0xf7) {
+//     log('[Serial] Packet Error(Header):', buffer.toString('hex', 0, 1), buffer.toString('hex', 1));
+//     return;
+//   } else if (buffer.length+1 != buffer[1]) {
+//     log('[Serial] Packet Error(Length):', buffer.toString('hex', 0, 2), buffer.toString('hex', 2));
+//     return;
+//   } else if (getCheckSum(buffer.subarray(0, buffer.length-1)) != buffer[buffer.length-1]) {
+//     log('[Serial] Packet Error(Checksum):', buffer.toString('hex', 0, buffer.length-1), buffer.toString('hex', buffer.length-1));
+//     return;
+//   }
+  
+//   if (buffer[4] == 0x01) {
+//     var scheduledRequestFound = CONST.DEVICE_SCHEDULED_REQUEST.find(obj => buffer.length === obj.requestHex.length && obj.requestHex.compare(buffer) === 0 );
+//     if (scheduledRequestFound) {
+//       //log('[Serial] Scheduled Request Found:', scheduledRequestFound.category);
+//       scheduledRequestFound.lastActivity = lastActivity;
+//     } else {
+//       var unscheduledRequestFound = CONST.DEVICE_UNSCHEDULED_REQUEST.find(obj => buffer.length === obj.requestHex.length && obj.requestHex.compare(buffer) === 0 );
+//       if (unscheduledRequestFound) {
+//         log('[Serial] Unscheduled Request Found:', unscheduledRequestFound.category);
+//       } else {
+//         log('[Serial] Unknown Request:', humanizeBuffer(buffer));
+//       }
+//     }
+//   } else if (buffer[4] ==  0x02) {
+//     var cmdFound = CONST.DEVICE_COMMAND.find(obj => buffer.length+1 === obj.commandHex.length && obj.commandHex.includes(buffer) );
+//     if (cmdFound) {
+//       //log('[Serial] Command Found:', CONST.DEVICE_CONFIG[cmdFound.base_topic].name, '->', cmdFound.state, buffer.toString('hex', 0, 7), buffer.toString('hex', 7));
+//       updateStatus(cmdFound);
+//     } else {
+//       log('[Serial] Unknown Command:', humanizeBuffer(buffer));
+//     }
+//   } else if (buffer[4] ==  0x04) {
+//     var stateFound = CONST.DEVICE_STATE.filter(obj => obj.checkState(obj, buffer) );
+//     if (stateFound.length !== 0) {
+//       stateFound.forEach(function(obj) {
+//         //log('[Serial] State Found:', obj.base_topic, obj.stateName, obj.state);
+//         updateStatus(obj);
+//       });
+//     } else {
+//       var ackFound = CONST.DEVICE_COMMAND.find(obj => buffer.length === obj.ackHex.length && obj.ackHex.compare(buffer) === 0 );
+//       if (ackFound) {
+//         var queueFoundIdx = queue.findIndex(obj => obj.commandHex && ackFound.commandHex.length === obj.commandHex.length && obj.commandHex.compare(ackFound.commandHex) === 0 );
+//         if(queueFoundIdx > -1) {
+//           log('[Serial] Success Command:', CONST.DEVICE_CONFIG[ackFound.base_topic].name, '->', ackFound.state, buffer.toString('hex', 0, 7), buffer.toString('hex', 7));
+//           queue.splice(queueFoundIdx, 1);
+//         }
+//       } else {
+//         log('[Serial] Unknown Response:', humanizeBuffer(buffer));
+//       }
+//     }
+//   } else {
+//     log('[Serial] Unknown Frame:', humanizeBuffer(buffer));
+//   }
+// });
 
 
 
